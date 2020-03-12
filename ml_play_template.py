@@ -50,4 +50,3 @@ def ml_loop():
             ball_served = True
         else:
             comm.send_instruction(scene_info.frame, PlatformAction.MOVE_LEFT)
-        comm.send_instruction(scene_info.frame, PlatformAction.MOVE_LEFT)
