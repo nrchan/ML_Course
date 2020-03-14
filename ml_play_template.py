@@ -59,21 +59,25 @@ def ml_loop():
             else:
                 comm.send_instruction(scene_info.frame, PlatformAction.NONE)
 
-#calculate the possible x posotion when ball is at y=400
+# calculate the possible x posotion when ball is at y=400
 def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y, prev_plat, cur_plat):
-    #change pivot to center
+    # change pivot to center
     prev_ball_x += 2
     cur_ball_x += 2
     prev_plat += 20
 
-    if prev_ball_y <= cur_ball_y:
+    if prev_ball_y > cur_ball_y:
+        # use > for the coordination is up side down
         return cur_ball_x -2
     else:
-        m = (cur_ball_y - prev_ball_y)/(cur_ball_x - prev_ball_x)
+        try:
+            m = (cur_ball_y - prev_ball_y)/(cur_ball_x - prev_ball_x)
+        except ZeroDivisionError:
+            m = (cur_ball_y - prev_ball_y)/(cur_ball_x - prev_ball_x + 1)
         # (y - y0) = m(x - x0)
         # (x - x0) = (y - y0)/m
         # x        = (y - y0)/m + x0
-        candidate = (400 - cur_ball_y)/m + cur_ball_x -2
+        candidate = (400 - cur_ball_y)/(m if m != 0 else 1) + cur_ball_x -2
         if candidate >= 0 and candidate <= 400:
             return candidate -2
         elif candidate > 400:
@@ -83,7 +87,7 @@ def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y, prev_plat, cur_p
                 return candidate % 400 -2
         else:
             candidate = abs(candidate)
-            if (candidate/400) % 2 == 1:
+            if (candidate/400) % 2 == 0:
                 return candidate % 400 -2
             else:
                 return 400 - candidate % 400 -2
