@@ -22,6 +22,8 @@ def ml_loop():
     # === Here is the execution order of the loop === #
     # 1. Put the initialization code here.
     ball_served = False
+    prev_ball_coor = (0,0)
+    prev_plat_coor = (0,0)
 
     # 2. Inform the game process that ml process is ready before start the loop.
     comm.ml_ready()
@@ -43,10 +45,45 @@ def ml_loop():
             continue
 
         # 3.3. Put the code here to handle the scene information
+        esti_ball_x = calculate(prev_ball_coor[0], prev_ball_coor[1], scene_info.ball[0], scene_info.ball[1], scene_info.platform[0], scene_info.platform[1])
 
         # 3.4. Send the instruction for this frame to the game process
         if not ball_served:
             comm.send_instruction(scene_info.frame, PlatformAction.SERVE_TO_LEFT)
             ball_served = True
         else:
-            comm.send_instruction(scene_info.frame, PlatformAction.MOVE_LEFT)
+            if esti_ball_x > scene_info.platform[0]:
+                comm.send_instruction(scene_info.frame, PlatformAction.MOVE_RIGHT)
+            elif esti_ball_x < scene_info.platform[0]:
+                comm.send_instruction(scene_info.frame, PlatformAction.MOVE_LEFT)
+            else:
+                comm.send_instruction(scene_info.frame, PlatformAction.NONE)
+
+#calculate the possible x posotion when ball is at y=400
+def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y, prev_plat, cur_plat):
+    #change pivot to center
+    prev_ball_x += 2
+    cur_ball_x += 2
+    prev_plat += 20
+
+    if prev_ball_y <= cur_ball_y:
+        return cur_ball_x -2
+    else:
+        m = (cur_ball_y - prev_ball_y)/(cur_ball_x - prev_ball_x)
+        # (y - y0) = m(x - x0)
+        # (x - x0) = (y - y0)/m
+        # x        = (y - y0)/m + x0
+        candidate = (400 - cur_ball_y)/m + cur_ball_x -2
+        if candidate >= 0 and candidate <= 400:
+            return candidate -2
+        elif candidate > 400:
+            if (candidate/400) % 2 == 1:
+                return 400 - candidate % 400 -2
+            else:
+                return candidate % 400 -2
+        else:
+            candidate = abs(candidate)
+            if (candidate/400) % 2 == 1:
+                return candidate % 400 -2
+            else:
+                return 400 - candidate % 400 -2
