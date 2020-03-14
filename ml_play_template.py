@@ -45,32 +45,33 @@ def ml_loop():
             continue
 
         # 3.3. Put the code here to handle the scene information
-        esti_ball_x = calculate(prev_ball_coor[0], prev_ball_coor[1], scene_info.ball[0], scene_info.ball[1], prev_plat_coor[0], scene_info.platform[0])
+        esti_ball_x = calculate(prev_ball_coor[0], prev_ball_coor[1], scene_info.ball[0], scene_info.ball[1])
 
         # 3.4. Send the instruction for this frame to the game process
         if not ball_served:
             comm.send_instruction(scene_info.frame, PlatformAction.SERVE_TO_LEFT)
             ball_served = True
         else:
-            if esti_ball_x > (scene_info.platform[0] + 20):
-                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0] + 20,", Moving right")
+            if (esti_ball_x - (scene_info.platform[0]+40)) > 0:
+                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0],", Moving right")
                 comm.send_instruction(scene_info.frame, PlatformAction.MOVE_RIGHT)
-            elif esti_ball_x < (scene_info.platform[0] + 20):
+            elif (esti_ball_x - scene_info.platform[0]) < 0:
                 comm.send_instruction(scene_info.frame, PlatformAction.MOVE_LEFT)
-                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0] + 20,", Moving left")
+                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0],", Moving left")
             else:
                 comm.send_instruction(scene_info.frame, PlatformAction.NONE)
-                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0] + 20,", Staying")
+                print("Estimate: ",esti_ball_x,", Current: ",scene_info.platform[0],", Staying")
         
         prev_ball_coor = (scene_info.ball[0], scene_info.ball[1])
         prev_plat_coor = (scene_info.platform[0], scene_info.platform[1])
 
 # calculate the possible x posotion when ball is at y=400
-def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y, prev_plat, cur_plat):
+def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y):
     # change pivot to center
     prev_ball_x += 2
+    prev_ball_y += 2
     cur_ball_x += 2
-    prev_plat += 20
+    cur_ball_y += 2
 
     if prev_ball_y > cur_ball_y:
         # use > for the coordination is up side down
@@ -84,16 +85,17 @@ def calculate(prev_ball_x, prev_ball_y, cur_ball_x, cur_ball_y, prev_plat, cur_p
         # (x - x0) = (y - y0)/m
         # x        = (y - y0)/m + x0
         candidate = (400 - cur_ball_y)/(m if m != 0 else 1) + cur_ball_x -2
-        if candidate >= 0 and candidate <= 400:
+        print("Raw estimate: ",candidate,"(x=",cur_ball_x,"m=",m,".)", end = " ")
+        if candidate >= 0 and candidate <= 200:
             return candidate
-        elif candidate > 400:
-            if (candidate/400) % 2 == 1:
-                return 400 - candidate % 400
+        elif candidate > 200:
+            if int((candidate/200)) % 2 == 1:
+                return 200 - candidate % 200
             else:
-                return candidate % 400
+                return candidate % 200
         else:
             candidate = abs(candidate)
-            if (candidate/400) % 2 == 0:
-                return candidate % 400
+            if int((candidate/200)) % 2 == 0:
+                return candidate % 200
             else:
-                return 400 - candidate % 400
+                return 200 - candidate % 200
